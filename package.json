@@ -1,0 +1,16 @@
+{
+  "name": "fallthrough-provider",
+  "version": "1.0.0",
+  "main": "./index.ts",
+  "files": [
+    "index.ts"
+  ],
+  "license": "MIT",
+  "scripts": {},
+  "devDependencies": {
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "ethers": "^5.7.2"
+  }
+}
