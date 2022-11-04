@@ -1,23 +1,23 @@
-# ethers-fallthrough-provider
+# fallthrough-provider
 
-Resilient provider that will switch to the next provider in the list if the current is too slow or fails.
+Resilient provider for Ethers.js that will switch to the next provider in the list if the current is too slow or fails.
 
-Inspired by essential-eth's [fallthrough provider](https://github.com/dawsbot/essential-eth).
+Inspired by essential-eth's [fallthrough provider](https://github.com/dawsbot/essential-eth/blob/master/src/providers/FallthroughProvider.ts).
 
 Great if you use unreliable or public RPCs or need a provider that never goes down.
 
 Supports listening to events with `.on()`.
 
-## Installation:
+## Installation
 
 ```bash
-npm install ethers-fallthrough-provider
+npm install fallthrough-provider
 ```
 
-## Example Usage:
+## Example Usage
 
 ```typescript
-import { FallthroughProvider } from 'ethers-fallthrough-provider';
+import { FallthroughProvider } from 'fallthrough-provider';
 
 import { ethers } from 'ethers'
 

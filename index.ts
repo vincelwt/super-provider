@@ -12,7 +12,7 @@ export class FallthroughProvider extends ethers.providers.BaseProvider {
   private stallTimeout: number = 1000
   private timeout: any
 
-  constructor (providers: ethers.providers.BaseProvider[], stallTimeout = 2000) {
+  constructor (providers: ethers.providers.BaseProvider[], stallTimeout = 1000) {
     super(providers[0].network)
 
     this.providers = providers
@@ -65,11 +65,12 @@ export class FallthroughProvider extends ethers.providers.BaseProvider {
     this.currentProviderIndex = (this.currentProviderIndex + 1) % this.providers.length
     this.currentProvider = this.providers[this.currentProviderIndex]
 
+    // Re-attach listeners to new provider
     Object.keys(this.activeListeners).forEach(eventName => {
       this.currentProvider.on(eventName, this.activeListeners[eventName])
     })
 
-    // listen to error events on the new provider
+    // Listen to error events on new provider
     this.currentProvider.on('error', err => {
       console.log('Error emitted by provider', err)
       this.cycleProvider()
@@ -78,8 +79,10 @@ export class FallthroughProvider extends ethers.providers.BaseProvider {
 
   on (eventName: string, listener: ethers.providers.Listener): this {
     if (!this.activeListeners[eventName]) {
+      // Save listener to re-attach it when cycling providers
       this.activeListeners[eventName] = listener
 
+      // Attach to current
       this.currentProvider.on(eventName, listener)
     }
 
