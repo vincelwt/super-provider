@@ -1,5 +1,5 @@
 {
-  "name": "super-provider",
+  "name": "ethers-super-provider",
   "version": "0.1.0",
   "main": "./index.ts",
   "files": [

@@ -14,13 +14,13 @@
 ## Installation
 
 ```bash
-npm install super-provider
+npm install ethers-super-provider
 ```
 
 ## Example Usage
 
 ```typescript
-import { SuperProvider } from 'super-provider';
+import { SuperProvider } from 'ethers-super-provider';
 
 import { ethers } from 'ethers'
 
