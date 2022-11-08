@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://svgshare.com/i/nup.svg" />
+  <img src="https://svgshare.com/i/ntW.svg" />
 </p>
 
 ### How it works
