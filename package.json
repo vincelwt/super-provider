@@ -1,5 +1,5 @@
 {
-  "name": "fallthrough-provider",
+  "name": "super-provider",
   "version": "0.1.0",
   "main": "./index.ts",
   "files": [
