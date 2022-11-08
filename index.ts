@@ -112,6 +112,9 @@ export class SuperProvider extends ethers.providers.BaseProvider {
       } catch (error) {
         if (tries >= this.maxRetries) throw error
 
+        // @ts-ignore
+        console.log(`SuperProvider: error with ${method}: ${error?.message} - retrying...`)
+
         tries++
 
         recursiveRetry()
@@ -192,7 +195,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
       .sort((a, b) => a.avgResponseTime - b.avgResponseTime)
 
     console.log(
-      `benchmark x${this.benchmarkRuns} finished. sorted providers:`,
+      `SuperProvider: benchmark x${this.benchmarkRuns} finished. sorted providers:`,
       sortedResults.map(
         // @ts-ignore
         p => `${p.provider?.connection?.url} | avg ${parseInt(p.avgResponseTime)}ms`
@@ -200,12 +203,12 @@ export class SuperProvider extends ethers.providers.BaseProvider {
     )
 
     if (!sortedResults.length) {
-      throw new Error('No healthy providers available.')
+      throw new Error('SuperProvider: No healthy providers available.')
     }
 
     if (sortedResults.length < 3) {
       console.warn(
-        `Only ${sortedResults.length} healthy providers available. Add more providers for robustness.`
+        `SuperProvider: Only ${sortedResults.length} healthy providers available. Add more providers for robustness.`
       )
     }
 
