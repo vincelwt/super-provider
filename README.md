@@ -1,16 +1,15 @@
-# super-provider
-
-Meta-provider for Ethers.js engineered for optimal speed, reliability and network usage.
-
-Best used with many sub providers.
+<p align="center">
+  <img src="https://svgshare.com/i/nup.svg" />
+</p>
 
 ### How it works
 
-- It will regularly benchmark (with `getBlockNumber`) the providers supplied and rank them by response time. Providers lagging in blocks won't be used.
+- You supply it with a list of regular providers 
+- It will frequently benchmark (with `getBlockNumber`) the providers supplied and rank them by response time. Providers lagging in blocks won't be used.
 - Depending on the selected mode: Calls are either:
   - spread between the top 3 fastest providers (default)
   - send to the fastest providers in parallel and the first response is returned (fastest)
-- If any call fails or stalls, it is automatically retried on another provider.
+- If any call fails or stalls, it is retried on another provider.
 
 ## Installation
 
