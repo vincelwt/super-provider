@@ -1,4 +1,5 @@
 import { ethers } from 'ethers'
+import { Utf8ErrorReason } from 'ethers/src.ts/utils'
 
 // https://advancedweb.hu/how-to-add-timeout-to-a-promise-in-javascript/
 const promiseTimeout = (prom: Promise<any>, time: number) =>
@@ -23,6 +24,14 @@ const quantile = (arr, q) => {
   } else {
     return sorted[base]
   }
+}
+
+// used for the retry logic, exponentially backoff
+// 1st retry: wait 50ms, 2nd retry: wait 800ms, 3rd retry: wait 3200ms, etc..
+const expRetryTimeout = (attempt: number) => {
+  const base = 50
+  const factor = 4
+  return new Promise(resolve => setTimeout(resolve, base * factor ** attempt))
 }
 
 type SuperProviderOptions =
@@ -91,7 +100,14 @@ export class SuperProvider extends ethers.providers.BaseProvider {
       await this.benchmarkProviders()
     }
 
-    const promiseGen = p => promiseTimeout(p.perform(method, params), this.stallTimeout)
+    const promiseGen = async p => {
+      try {
+        return await promiseTimeout(p.perform(method, params), this.stallTimeout)
+      } catch (e) {
+        this.banProvider(p)
+        throw e
+      }
+    }
 
     let tries = 0
 
@@ -100,14 +116,9 @@ export class SuperProvider extends ethers.providers.BaseProvider {
 
       try {
         if (this.mode === 'spread') {
-          // mode "spread" = cycle through fastest providers
+          // mode "spread" = cycle through fastest providers to spread load
           const provider = providers[this.cycleIndex]
-
-          // only cycle if last cycle was more than 100ms ago, to group batch requests if using a batch provider
-          // if (new Date().getTime() - this.lastCycle.getTime() > 100) {
           this.cycleIndex = (this.cycleIndex + 1) % providers.length
-          // this.lastCycle = new Date()
-          // }
 
           return await promiseGen(provider)
         } else {
@@ -125,11 +136,25 @@ export class SuperProvider extends ethers.providers.BaseProvider {
           error
         )
 
+        // exponential backoff delay
+        await expRetryTimeout(tries)
+
         recursiveRetry()
       }
     }
 
     return recursiveRetry()
+  }
+
+  // provider won't be used until next benchmark
+  banProvider (provider: ethers.providers.BaseProvider) {
+    if (this.providersPool.length <= 1) return
+
+    this.providersPool = this.providersPool.filter(p => p.provider !== provider)
+
+    if (!this.providersPool[this.cycleIndex]) {
+      this.cycleIndex = 0
+    }
   }
 
   async benchmarkProviders (): Promise<void> {
