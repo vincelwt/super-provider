@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://svgshare.com/i/ntW.svg" />
+  <img src="https://alt0.io/superprovider.svg" />
 </p>
 
 ### How it works

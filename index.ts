@@ -4,7 +4,7 @@ import { ethers } from 'ethers'
 const promiseTimeout = (prom: Promise<any>, time: number) =>
   Promise.race([
     prom,
-    new Promise((_r, reject) => setTimeout(() => reject('Promise timed out'), time))
+    new Promise((_r, reject) => setTimeout(() => reject('Provider stalled'), time))
   ])
 
 const shuffleArray = (array: any[]) =>
@@ -41,7 +41,8 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   private readonly providers: ethers.providers.BaseProvider[]
 
   private cycleIndex: number = 0
-  private providersPool: { score: number; provider: ethers.providers.BaseProvider }[]
+  // private lastCycle: Date = new Date()
+  private providersPool: { score: number; provider: ethers.providers.BaseProvider }[] = []
 
   private stallTimeout: number
   private maxRetries: number
@@ -54,7 +55,6 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   constructor (providers: ethers.providers.BaseProvider[], options?: SuperProviderOptions) {
     super(providers[0].network)
 
-    this.providersPool = []
     this.providers = providers
 
     if (providers.length < 1) {
@@ -67,7 +67,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
       )
     }
 
-    this.stallTimeout = options?.stallTimeout || 4000 // 4s
+    this.stallTimeout = options?.stallTimeout || 6000
     this.maxRetries = options?.maxRetries || 3
     this.benchmarkRuns = options?.benchmarkRuns || 3
     this.acceptableBlockLag = options?.acceptableBlockLag || 0
@@ -102,7 +102,12 @@ export class SuperProvider extends ethers.providers.BaseProvider {
         if (this.mode === 'spread') {
           // mode "spread" = cycle through fastest providers
           const provider = providers[this.cycleIndex]
+
+          // only cycle if last cycle was more than 100ms ago, to group batch requests if using a batch provider
+          // if (new Date().getTime() - this.lastCycle.getTime() > 100) {
           this.cycleIndex = (this.cycleIndex + 1) % providers.length
+          // this.lastCycle = new Date()
+          // }
 
           return await promiseGen(provider)
         } else {
@@ -112,10 +117,13 @@ export class SuperProvider extends ethers.providers.BaseProvider {
       } catch (error) {
         if (tries >= this.maxRetries) throw error
 
-        // @ts-ignore
-        console.log(`SuperProvider: error with ${method}: ${error?.message} - retrying...`)
-
         tries++
+
+        // @ts-ignore
+        console.error(
+          `SuperProvider: error with ${method} - retrying ${tries}/${this.maxRetries}...`,
+          error
+        )
 
         recursiveRetry()
       }
