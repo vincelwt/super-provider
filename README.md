@@ -6,9 +6,9 @@
 
 - You supply it with a list of regular providers 
 - It will frequently benchmark (with `getBlockNumber`) the providers supplied and rank them by response time. Providers lagging in blocks won't be used.
-- Depending on the selected mode: Calls are either:
-  - spread between the fastest providers (default)
-  - send to the fastest providers in parallel and the first response is returned (fastest)
+- Depending on the selected mode, calls are either:
+  - spread in cycles between the fastest providers (default)
+  - sent to the fastest providers in parallel and the first response is returned (fastest)
 - If any call fails or stalls, it is retried on another provider with an exponential backoff.
 
 ## Installation
