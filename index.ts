@@ -36,14 +36,14 @@ const expRetryTimeout = (attempt: number) => {
 
 type SuperProviderOptions =
   | {
-      stallTimeout?: number
-      maxRetries?: number
-      acceptableBlockLag?: number
-      benchmarkRuns?: number
-      benchmarkFrequency?: number
-      mode?: 'spread' | 'parallel'
-      maxParallel?: number
-    }
+    stallTimeout?: number
+    maxRetries?: number
+    acceptableBlockLag?: number
+    benchmarkRuns?: number
+    benchmarkFrequency?: number
+    mode?: 'spread' | 'parallel'
+    maxParallel?: number
+  }
   | undefined
 
 export class SuperProvider extends ethers.providers.BaseProvider {
@@ -61,7 +61,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   private maxParallel: number
   private mode: 'spread' | 'parallel'
 
-  constructor (providers: ethers.providers.BaseProvider[], options?: SuperProviderOptions) {
+  constructor(providers: ethers.providers.BaseProvider[], options?: SuperProviderOptions) {
     super(providers[0].network)
 
     this.providers = providers
@@ -89,13 +89,13 @@ export class SuperProvider extends ethers.providers.BaseProvider {
     }, this.benchmarkFrequency)
   }
 
-  async detectNetwork (): Promise<ethers.providers.Network> {
+  async detectNetwork(): Promise<ethers.providers.Network> {
     return this.providers[0].detectNetwork()
   }
 
   // if mode is spread, cycle through top providers. Otherwise make request to all top in parallel.
   // retry up to maxAttempts times
-  async perform (method: string, params: any): Promise<any> {
+  async perform(method: string, params: any): Promise<any> {
     if (!this.providersPool.length) {
       await this.benchmarkProviders()
     }
@@ -130,10 +130,9 @@ export class SuperProvider extends ethers.providers.BaseProvider {
 
         tries++
 
-        // @ts-ignore
         console.error(
           `SuperProvider: error with ${method} - retrying ${tries}/${this.maxRetries}...`,
-          error
+          error?.message
         )
 
         // exponential backoff delay
@@ -147,7 +146,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   }
 
   // provider won't be used until next benchmark
-  banProvider (provider: ethers.providers.BaseProvider) {
+  banProvider(provider: ethers.providers.BaseProvider) {
     if (this.providersPool.length <= 1) return
 
     this.providersPool = this.providersPool.filter(p => p.provider !== provider)
@@ -157,7 +156,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
     }
   }
 
-  async benchmarkProviders (): Promise<void> {
+  async benchmarkProviders(): Promise<void> {
     if (this.providers.length <= 2) {
       this.providersPool = this.providers.map(provider => ({ score: 1, provider }))
       return
@@ -195,9 +194,8 @@ export class SuperProvider extends ethers.providers.BaseProvider {
         0.75
       )
 
-      const filteredResults = results.filter(p => currentBlock - p.block <= this.acceptableBlockLag)
-
-      return filteredResults
+      const onlyUpToDate = results.filter(p => currentBlock - p.block <= this.acceptableBlockLag)
+      return onlyUpToDate
     }
 
     // run benchmark n times sequentially
@@ -206,9 +204,10 @@ export class SuperProvider extends ethers.providers.BaseProvider {
       results.push(await run())
     }
 
-    // group results by provider, calc avg response time and sort by it
+
     const sortedResults = results
       .flat()
+      // group benchmark results by provider
       .reduce(
         (acc, result) => {
           const existing = acc.find(r => r.provider === result.provider)
@@ -223,29 +222,36 @@ export class SuperProvider extends ethers.providers.BaseProvider {
 
         [] as { provider: ethers.providers.BaseProvider; responseTime: number; count: number }[]
       )
+      // only keep those that successful in all runs
       .filter(r => r.count === this.benchmarkRuns)
+      // calc avg response time
       .map(r => ({ ...r, avgResponseTime: r.responseTime / r.count }))
+
+      // sort by avg response time
       .sort((a, b) => a.avgResponseTime - b.avgResponseTime)
+
+    // exclude providers > 50% slower from median (q2)
+    const median = quantile(
+      sortedResults.map(r => r.avgResponseTime),
+      0.5
+    )
+
+    const filteredResults = sortedResults.filter(r => r.avgResponseTime <= median * 1.5)
 
     console.log(
       `SuperProvider: benchmark x${this.benchmarkRuns} finished. sorted providers:`,
-      sortedResults.map(
-        // @ts-ignore
-        p => `${p.provider?.connection?.url} | avg ${parseInt(p.avgResponseTime)}ms`
-      )
+      filteredResults.map(p => `${p.provider.connection?.url} | avg ${parseInt(p.avgResponseTime)}ms`)
     )
 
-    if (!sortedResults.length) {
+    if (!filteredResults.length) {
       throw new Error('SuperProvider: No healthy providers available.')
     }
 
-    if (sortedResults.length < 3) {
-      console.warn(
-        `SuperProvider: Only ${sortedResults.length} healthy providers available. Add more providers for robustness.`
-      )
+    if (filteredResults.length < 3) {
+      console.warn(`SuperProvider: Only ${filteredResults.length} healthy providers available. Add more providers for robustness.`)
     }
 
-    this.providersPool = sortedResults.map(r => ({
+    this.providersPool = filteredResults.map(r => ({
       provider: r.provider,
       score: 1 / r.avgResponseTime // higher is better
     }))
@@ -255,7 +261,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   }
 
   // if raceMode > 0, return top n providers, otherwise return providers with score above median
-  providersToUse (): ethers.providers.BaseProvider[] {
+  providersToUse(): ethers.providers.BaseProvider[] {
     if (this.providersPool.length <= 2) {
       return this.providersPool.map(p => p.provider)
     }
@@ -263,14 +269,9 @@ export class SuperProvider extends ethers.providers.BaseProvider {
     const sorted = this.providersPool.sort((a, b) => b.score - a.score)
 
     if (this.mode === 'parallel') {
-      return sorted.slice(0, this.maxParallel).map(p => p.provider)
+      return sorted.slice(0, Math.min(this.maxParallel, this.providersPool.length)).map(p => p.provider)
     }
 
-    const q2 = quantile(
-      sorted.map(p => p.score),
-      0.5
-    )
-
-    return sorted.filter(p => p.score >= q2).map(p => p.provider)
+    return sorted.map(p => p.provider)
   }
 }
