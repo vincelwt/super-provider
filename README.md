@@ -4,7 +4,7 @@
 
 ### How it works
 
-- You supply it with a list of regular providers 
+- You supply it with a list of regular providers
 - It will frequently benchmark (with `getBlockNumber`) the providers supplied and rank them by response time. Providers lagging in blocks won't be used.
 - Depending on the selected mode, calls are either:
   - spread in cycles between the fastest providers (default)
@@ -20,44 +20,45 @@ npm install ethers-super-provider
 ## Example Usage
 
 ```typescript
-import { SuperProvider } from 'ethers-super-provider';
+import { SuperProvider } from "ethers-super-provider"
 
-import { ethers } from 'ethers'
+import { ethers } from "ethers"
 
 const rpcs = [
   "https://api.mycryptoapi.com/eth",
   "https://cloudflare-eth.com",
   "https://eth-mainnet.public.blastapi.io",
-  "https://rpc.ankr.com/eth"
+  "https://rpc.ankr.com/eth",
 ]
 
-const provider = new SuperProvider(rpcs.map(url => new ethers.providers.JsonRpcProvider(url)))
+const provider = new SuperProvider(rpcs.map((url) => new ethers.providers.JsonRpcProvider(url)))
 
 const blockNumber = await provider.getBlockNumber()
 console.log(blockNumber)
 ```
 
-#### Which mode to use? 
+#### Which mode to use?
 
-- if you are not doing very frequent calls and/or want the absolute fastest results, regardless of network use or cost, use `parallel` which will send the request to many providers in parallel and return the first available response. 
+- if you are not doing very frequent calls and/or want the absolute fastest results, regardless of network use or cost, use `parallel` which will send the request to many providers in parallel and return the first available response.
 
 - for all other uses (espsecially if you are doing a lot of requests at once) use `spread` (default) which is more efficient. Limit expensive API calls to a provider. This is also more respectful for public providers as it won't flood them with requests you won't use.
 
 ## API
 
 ### `new SuperProvider(providers: Provider[], options?: SuperProviderOptions)`
+
 - `providers`: Array of providers to use
 - `options`: Options for the super provider
 
 ### `options`
+
 - `mode`: Mode to use for calls. Either `spread` or `parallel`. Default: `spread`
 - `maxRetries`: Maximum number of retries for a call. Default: `3`
-- `benchmarkFrequency`: Interval between benchmarks. Default: `300000` (5 minutes)
+- `benchmarkFrequency`: Interval between benchmarks. Default: `200000` (~3 minutes)
 - `acceptableBlockLag`: Maximum number of blocks a provider can lag behind the fastest provider. Default: `0`
-- `benchmarkRuns`: Number of runs for each benchmark. Default: `3`
+- `benchmarkRuns`: Number of runs for each benchmark. Default: `2`
 - `stallTimeout`: Timeout for a call to be considered stalled. Default: `4000` (4 seconds)
 - `maxParallel`: Maximum number of parallel calls. Default: `3`
-
 
 ## Caveats
 
