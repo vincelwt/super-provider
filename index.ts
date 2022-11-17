@@ -15,6 +15,7 @@ type SuperProviderOptions = {
 export class SuperProvider extends ethers.providers.BaseProvider {
   private readonly providers: ethers.providers.BaseProvider[]
 
+  private chainId: number
   private cycleIndex: number = 0
   // private lastCycle: Date = new Date()
   private providersPool: { score: number; provider: ethers.providers.BaseProvider }[] = []
@@ -27,9 +28,11 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   private maxParallel: number
   private mode: "spread" | "parallel"
 
-  constructor(providers: ethers.providers.BaseProvider[], options?: SuperProviderOptions) {
-    super(providers[0].network)
+  constructor(providers: ethers.providers.BaseProvider[], chainId?, options?: SuperProviderOptions) {
 
+    super(chainId || 1)
+
+    this.chainId = chainId || 1
     this.providers = providers
 
     if (providers.length < 1) {
@@ -50,21 +53,36 @@ export class SuperProvider extends ethers.providers.BaseProvider {
     this.mode = options?.mode || "spread"
     this.maxParallel = options?.maxParallel || 3
 
+    // initialize providersPool with all providers equal, will be refined by the benchmark.
+    this.providersPool = providers.map((p) => ({ score: 1, provider: p }))
+
+    this.benchmarkProviders()
+
     setInterval(() => {
       this.benchmarkProviders()
     }, this.benchmarkFrequency)
   }
 
+  // manually override/disable network detections as it causes issues with some providers
+  // originally this in Ethers is used to detect underlying network changes (rare use case), 
+  // but now we just use the chainId passed in constructor
   async detectNetwork(): Promise<ethers.providers.Network> {
-    return this.providers[0].detectNetwork()
+    return {
+      name: "", // TODO: get network name (required by type Network)
+      chainId: this.chainId,
+    }
+  }
+
+  async getNetwork(): Promise<ethers.providers.Network> {
+    return {
+      name: "",
+      chainId: this.chainId,
+    }
   }
 
   // if mode is spread, cycle through top providers. Otherwise make request to all top in parallel.
   // retry up to maxAttempts times
   async perform(method: string, params: any): Promise<any> {
-    if (!this.providersPool.length) {
-      await this.benchmarkProviders()
-    }
 
     const promiseGen = async (p) => {
       try {
@@ -72,7 +90,6 @@ export class SuperProvider extends ethers.providers.BaseProvider {
       } catch (e) {
 
         this.banProvider(p)
-
 
         // // check the error message if it's a rate limit
         // if (RATE_LIMIT_KEYWORDS.find(k => e?.message?.toLowerCase().includes(k))) {
@@ -106,8 +123,9 @@ export class SuperProvider extends ethers.providers.BaseProvider {
 
         tries++
 
-        console.error(
-          `SuperProvider: error with ${method} - retrying ${tries}/${this.maxRetries}...`, error?.message)
+
+        // slice message, sometimes weirdly contains the whole error 
+        console.error(`SuperProvider: error with ${method} - retrying ${tries}/${this.maxRetries}...`, error?.message?.slice(0, 100))
 
         // exponential backoff delay
         await expRetryTimeout(tries)
@@ -128,6 +146,23 @@ export class SuperProvider extends ethers.providers.BaseProvider {
     if (!this.providersPool[this.cycleIndex]) {
       this.cycleIndex = 0
     }
+  }
+
+  // if raceMode > 0, return top n providers, otherwise return providers with score above median
+  providersToUse(): ethers.providers.BaseProvider[] {
+    if (this.providersPool.length <= 2) {
+      return this.providersPool.map((p) => p.provider)
+    }
+
+    const sorted = this.providersPool.sort((a, b) => b.score - a.score)
+
+    if (this.mode === "parallel") {
+      return sorted
+        .slice(0, Math.min(this.maxParallel, this.providersPool.length))
+        .map((p) => p.provider)
+    }
+
+    return sorted.map((p) => p.provider)
   }
 
   async benchmarkProviders(): Promise<void> {
@@ -236,22 +271,5 @@ export class SuperProvider extends ethers.providers.BaseProvider {
 
     // reset cycle index
     this.cycleIndex = 0
-  }
-
-  // if raceMode > 0, return top n providers, otherwise return providers with score above median
-  providersToUse(): ethers.providers.BaseProvider[] {
-    if (this.providersPool.length <= 2) {
-      return this.providersPool.map((p) => p.provider)
-    }
-
-    const sorted = this.providersPool.sort((a, b) => b.score - a.score)
-
-    if (this.mode === "parallel") {
-      return sorted
-        .slice(0, Math.min(this.maxParallel, this.providersPool.length))
-        .map((p) => p.provider)
-    }
-
-    return sorted.map((p) => p.provider)
   }
 }

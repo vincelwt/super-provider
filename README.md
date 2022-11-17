@@ -45,9 +45,10 @@ console.log(blockNumber)
 
 ## API
 
-### `new SuperProvider(providers: Provider[], options?: SuperProviderOptions)`
+### `new SuperProvider(providers: Provider[], chainId: number, options?: SuperProviderOptions)`
 
 - `providers`: Array of providers to use
+- `chainId`: Chain ID to use (default: 1 / eth mainnet)
 - `options`: Options for the super provider
 
 ### `options`
