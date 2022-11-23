@@ -37,12 +37,6 @@ const blockNumber = await provider.getBlockNumber()
 console.log(blockNumber)
 ```
 
-#### Which mode to use?
-
-- if you are not doing very frequent calls and/or want the absolute fastest results, regardless of network use or cost, use `parallel` which will send the request to many providers in parallel and return the first available response.
-
-- for all other uses (espsecially if you are doing a lot of requests at once) use `spread` (default) which is more efficient. Limit expensive API calls to a provider. This is also more respectful for public providers as it won't flood them with requests you won't use.
-
 ## API
 
 ### `new SuperProvider(providers: Provider[], chainId: number, options?: SuperProviderOptions)`
@@ -60,6 +54,12 @@ console.log(blockNumber)
 - `benchmarkRuns`: Number of runs for each benchmark. Default: `2`
 - `stallTimeout`: Timeout for a call to be considered stalled. Default: `4000` (4 seconds)
 - `maxParallel`: Maximum number of parallel calls. Default: `3`
+
+### Which mode to use?
+
+- if you are not doing very frequent calls and/or want the absolute fastest results, regardless of network use or cost, use `parallel` which will send the request to many providers in parallel and return the first available response.
+
+- for all other uses (espsecially if you are doing a lot of requests at once) use `spread` (default) which is more efficient. Limit expensive API calls to a provider. This is also more respectful for public providers as it won't flood them with requests you won't use.
 
 ## Caveats
 

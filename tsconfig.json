@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "outDir": "./lib/",
+    "rootDir": "./src.ts",
+    "declaration": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "commonjs",
+    "moduleResolution": "Node",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "preserveSymlinks": true,
+    "preserveWatchOutput": true,
+    "pretty": false,
+    "sourceMap": true,
+    "strict": false,
+    "target": "es2021",
+    "types": []
+  },
+  "include": [
+    "./src.ts/*.ts"
+  ],
+  "exclude": []
+}

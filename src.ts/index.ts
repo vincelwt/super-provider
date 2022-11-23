@@ -1,6 +1,13 @@
-import { ethers } from "ethers"
+import { BaseProvider, Network } from "@ethersproject/providers"
+
 // https://advancedweb.hu/how-to-add-timeout-to-a-promise-in-javascript/
-import { promiseTimeout, shuffleArray, quantile, expRetryTimeout, RATE_LIMIT_KEYWORDS } from "./utils"
+import {
+  promiseTimeout,
+  shuffleArray,
+  quantile,
+  expRetryTimeout,
+  // RATE_LIMIT_KEYWORDS,
+} from "./utils"
 
 type SuperProviderOptions = {
   stallTimeout?: number
@@ -12,13 +19,13 @@ type SuperProviderOptions = {
   maxParallel?: number
 }
 
-export class SuperProvider extends ethers.providers.BaseProvider {
-  private readonly providers: ethers.providers.BaseProvider[]
+export class SuperProvider extends BaseProvider {
+  private readonly providers: BaseProvider[]
 
   private chainId: number
   private cycleIndex: number = 0
   // private lastCycle: Date = new Date()
-  private providersPool: { score: number; provider: ethers.providers.BaseProvider }[] = []
+  private providersPool: { score: number; provider: BaseProvider }[] = []
 
   private stallTimeout: number
   private maxRetries: number
@@ -28,8 +35,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   private maxParallel: number
   private mode: "spread" | "parallel"
 
-  constructor(providers: ethers.providers.BaseProvider[], chainId?, options?: SuperProviderOptions) {
-
+  constructor(providers: BaseProvider[], chainId?, options?: SuperProviderOptions) {
     super(chainId || 1)
 
     this.chainId = chainId || 1
@@ -64,31 +70,29 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   }
 
   // manually override/disable network detections as it causes issues with some providers
-  // originally this in Ethers is used to detect underlying network changes (rare use case), 
+  // originally this in Ethers is used to detect underlying network changes (rare use case),
   // but now we just use the chainId passed in constructor
-  async detectNetwork(): Promise<ethers.providers.Network> {
+  async detectNetwork(): Promise<Network> {
     return {
       name: "", // TODO: get network name (required by type Network)
       chainId: this.chainId,
     }
   }
 
-  async getNetwork(): Promise<ethers.providers.Network> {
+  async getNetwork(): Promise<Network> {
     return {
       name: "",
       chainId: this.chainId,
     }
   }
 
-  // if mode is spread, cycle through top providers. Otherwise make request to all top in parallel.
+  // if mode is spread, cycle through top  Otherwise make request to all top in parallel.
   // retry up to maxAttempts times
   async perform(method: string, params: any): Promise<any> {
-
     const promiseGen = async (p) => {
       try {
         return await promiseTimeout(p.perform(method, params), this.stallTimeout)
       } catch (e) {
-
         this.banProvider(p)
 
         // // check the error message if it's a rate limit
@@ -123,9 +127,11 @@ export class SuperProvider extends ethers.providers.BaseProvider {
 
         tries++
 
-
-        // slice message, sometimes weirdly contains the whole error 
-        console.error(`SuperProvider: error with ${method} - retrying ${tries}/${this.maxRetries}...`, error?.message?.slice(0, 100))
+        // slice message, sometimes weirdly contains the whole error
+        console.error(
+          `SuperProvider: error with ${method} - retrying ${tries}/${this.maxRetries}...`,
+          error?.message?.slice(0, 100)
+        )
 
         // exponential backoff delay
         await expRetryTimeout(tries)
@@ -138,7 +144,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   }
 
   // provider won't be used until next benchmark
-  banProvider(provider: ethers.providers.BaseProvider) {
+  banProvider(provider: BaseProvider) {
     if (this.providersPool.length <= 1) return
 
     this.providersPool = this.providersPool.filter((p) => p.provider !== provider)
@@ -149,7 +155,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
   }
 
   // if raceMode > 0, return top n providers, otherwise return providers with score above median
-  providersToUse(): ethers.providers.BaseProvider[] {
+  providersToUse(): BaseProvider[] {
     if (this.providersPool.length <= 2) {
       return this.providersPool.map((p) => p.provider)
     }
@@ -193,7 +199,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
 
       // send in parallel to be able to compare block returned
       const results = (await Promise.all(promises)).filter((p) => p) as {
-        provider: ethers.providers.BaseProvider
+        provider: BaseProvider
         responseTime: number
         block: number
       }[]
@@ -229,7 +235,7 @@ export class SuperProvider extends ethers.providers.BaseProvider {
           return acc
         },
 
-        [] as { provider: ethers.providers.BaseProvider; responseTime: number; count: number }[]
+        [] as { provider: BaseProvider; responseTime: number; count: number }[]
       )
       // only keep those that successful in all runs
       .filter((r) => r.count === this.benchmarkRuns)

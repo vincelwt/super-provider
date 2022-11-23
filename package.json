@@ -1,16 +1,31 @@
 {
   "name": "ethers-super-provider",
-  "version": "0.1.2",
-  "main": "./index.ts",
-  "files": [
-    "index.ts"
-  ],
-  "license": "MIT",
-  "scripts": {},
+  "main": "lib/index.js",
+  "description": "Ether.js meta-provider optimized for speed and reliability.",
+  "directories": {
+    "lib": "lib"
+  },
+  "version": "0.1.3",
+  "scripts": {
+    "build": "tsc --skipLibCheck",
+    "prepare": "npm run build"
+  },
   "devDependencies": {
-    "typescript": "^4.8.4"
+    "typescript": "^4.9.3"
   },
   "dependencies": {
-    "ethers": "^5.7.2"
-  }
+    "@ethersproject/providers": "^5.7.2"
+  },
+  "keywords": [
+    "ethereum",
+    "ethers.js",
+    "provider"
+  ],
+  "author": "@vincelwt",
+  "license": "MIT",
+  "types": "./lib/index.d.ts",
+  "bugs": {
+    "url": "https://github.com/vincelwt/super-provider/issues"
+  },
+  "homepage": "https://github.com/vincelwt/super-provider#readme"
 }
