@@ -2,6 +2,8 @@
   <img src="https://alt0.io/superprovider.svg" />
 </p>
 
+Used by [alt0.io](https://alt0.io) to provide highly reliable and fast chain listening.
+
 ### How it works
 
 - You supply it with a list of regular providers
@@ -73,4 +75,8 @@ Inspiration taken from ethers's [FallbackProvider](https://docs.ethers.io/v5/api
 
 ## Used by
 
-Used by [alt0.io](https://alt0.io) to provide highly reliable and fast chain listening.
+- [alt0.io](alt0.io)
+
+## Author
+
+plz follow me [on twitter](https://twitter.com/vincelwt) I don't have many followers
